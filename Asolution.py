@@ -171,6 +171,9 @@ def get_detect_data(clip_name):
     if osp.isdir(result_dir):
         shutil.rmtree(result_dir)
 
+    if not osp.isfile(source):  # colab should not confuse .mov and .MOV ??
+        source = source[:-3] + 'MOV'
+
     # detect: 1 detection every frame, write labels, write probabilities
     command = 'python detect.py --img ' + str(img) + ' --weights ' + weights + ' --data ' + data + ' --source ' + source + ' --max-det ' + str(max_det) + ' --save-txt --save-conf'
     sp.run(command.split(' '))
