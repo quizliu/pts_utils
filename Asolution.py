@@ -400,7 +400,8 @@ def set_logger():
     log.setLevel(logging.INFO)
     handler = logging.FileHandler(datetime.strftime(datetime.now(), r'%Y-%m-%d-%H:%M:%S') + '.txt', mode='w')
     handler.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(message)s', '%m-%d %H:%M:%S')
+    # formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(message)s', '%m-%d %H:%M:%S')
+    formatter = logging.Formatter('%(message)s')  # many result now, shorten the log string
     handler.setFormatter(formatter)
     log.addHandler(handler)
     return log
