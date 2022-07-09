@@ -60,6 +60,13 @@ SPEED = {
     'speed_82': [57, 55, 57, 57, 54],
     'speed_83': [55, 57, 49, 55, 51],
     'speed_84': [55, 54, 58, 54, 49],
+
+    'speed_85': [55, 55, 55, 57, 57],
+    'speed_86': [61, 58, 58, 59, 60],
+    'speed_87': [58, 49, 0.1, 58, 60],  # 0.1 means doesn't have a velocity value, but indeed is a pitch in the video
+    'speed_88': [53, 55, 51, 48, 53],
+    'speed_89': [53, 53, 51, 0.1, 51],
+
 }
 
 # number of clips each video has
@@ -99,6 +106,12 @@ HEIGHT = {  # all in inches, 68 = 5 ft 8 inches
     'speed_82': [H[2], H[-1]],
     'speed_83': [H[2], H[-1]],
     'speed_84': [H[2], H[-1]],
+
+    'speed_85': [H[3], H[-1]],
+    'speed_86': [H[3], H[-1]],
+    'speed_87': [H[3], H[-1]],
+    'speed_88': [H[3], H[-1]],
+    'speed_89': [H[3], H[-1]],
 }
 
 # old videos are filmed under 30 fps
