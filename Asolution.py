@@ -63,11 +63,15 @@ SPEED = {
 
     'speed_85': [55, 55, 55, 57, 57],
     'speed_86': [61, 58, 58, 59, 60],
-    'speed_87': [58, 49, 0.1, 58, 60],  # 0.1 means doesn't have a velocity value, but indeed is a pitch in the video
+    'speed_87': [58, 49, 00, 58, 60],  #  means doesn't have a velocity value, but indeed is a pitch in the video
     'speed_88': [53, 55, 51, 48, 53],
-    'speed_89': [53, 53, 51, 0.1, 51],
+    'speed_89': [53, 53, 51, 00, 51],
+    'speed_90': [60, 59, 61, 58, 52],
+    'speed_91': [59, 59, 52, 59, 59],
 
 }
+
+INVALID_VELOCITY_ERROR = 999.9
 
 # number of clips each video has
 VIDEO = {k: len(v) for k, v in SPEED.items()}
@@ -112,10 +116,27 @@ HEIGHT = {  # all in inches, 68 = 5 ft 8 inches
     'speed_87': [H[3], H[-1]],
     'speed_88': [H[3], H[-1]],
     'speed_89': [H[3], H[-1]],
+    'speed_90': [H[3], H[-1]],
+    'speed_91': [H[3], H[-1]],
 }
 
-# old videos are filmed under 30 fps
-FPS_30 = {'speed_1', 'speed_2', 'speed_5', 'speed_52'}
+STICK_LENGTH = 24
+
+BALL_DIAMETER = 3
+
+DISTANCE = 60 * 12 + 6
+
+# different FPS videos, most videos are under 60FPS
+FPS = {
+    30: {'speed_1', 'speed_2', 'speed_5', 'speed_52'},
+    120: {'speed_91'},
+    240: {'speed_90'},
+}
+
+def find_fps(name):  # change the FPS structure, and find fps
+    for k, v in FPS:
+        if name in v:
+            return k
 
 def dis(pa, pb):
     '''
@@ -421,7 +442,7 @@ class Velocity:
         self.plt = plt.figure(figsize=(16, 9))
 
         self.img_x, self.img_y = 1920, 1080  # resolution
-        self.fps = 30 if clip_name[:clip_name.rfind('_')] in FPS_30 else 60  # fps
+        self.fps = find_fps(clip_name)  # fps
         self.round = 2  # round digit in functions
 
         self.pos = []  # original trajectory data, [[position x, position y, number of frame]]
@@ -471,9 +492,11 @@ class Velocity:
             with open(self.calibration_path, 'r') as f:
                 for line in f.readlines():
                     self.calibration.append(line.strip().split(' '))
-        
-        self.calibration_x = [float(i[1]) for i in self.calibration]  # use distance
-        self.calibration_height = [float(i[4]) for i in self.calibration]  # use height
+        # add a stick as the reference object: the first two lines in self.calibration is person
+        # the third line in self.calibrtion is stick
+        self.calibration_x = [float(i[1]) for i in self.calibration[:2]]  # use distance
+        self.calibration_height = [float(i[4]) for i in self.calibration[:2]]  # use height
+        self.calibration_stick = [float(i[3]) for i in self.calibration[2:]]  # use stick, use slice of self.calibration in case of there's no third line
 
         # setup part
         self.left_player = min(self.calibration_x[0], self.calibration_x[1]) * self.img_x  # use distance
@@ -483,14 +506,16 @@ class Velocity:
         self.tall_player = max(self.calibration_height[0], self.calibration_height[1]) * self.img_y
  
         pixel_length = abs(self.calibration_x[0] - self.calibration_x[1]) * self.img_x
-        real_length_distance = (60 * 12 + 6) / 63360  # miles, 1 mile = 1,760 yards = 5,280 feet = 63,360 inches
-        real_length_ball = (3) / 63360  # baseball diameter: 3 inches
+        real_length_distance = DISTANCE / 63360  # miles, 1 mile = 1,760 yards = 5,280 feet = 63,360 inches
+        real_length_ball = BALL_DIAMETER / 63360  # baseball diameter: 3 inches
+        real_length_stick = STICK_LENGTH / 63360
 
         self.rlpp_distance = real_length_distance / pixel_length  # real length per pixel, use distance
         self.rlpp_higher = (max(HEIGHT[self.clip_name[:self.clip_name.rfind('_')]]) / 63360) / (self.tall_player)  # real lenght per pixel, use higher player's height
         self.rlpp_shorter = (min(HEIGHT[self.clip_name[:self.clip_name.rfind('_')]]) / 63360) / (self.short_player)  # real lenght per pixel, use shorter player's height
         self.rlpp_ball = real_length_ball / (sum(self.ball_size) / len(self.ball_size))  # real length per pixel, use ball size
         self.rlpp_average = 1  # calculate average velocity, no need for rlpp here
+        self.rlpp_stick = None if not self.calibration_stick else real_length_stick / (self.calibration_stick[0] * self.img_x)
 
         self.rlpp_backup = {
             'distance': self.rlpp_distance, 
@@ -498,6 +523,7 @@ class Velocity:
             'higher': self.rlpp_higher, 
             'ball': self.rlpp_ball,
             'average': self.rlpp_average,
+            'stick': self.rlpp_stick,
         }
 
         self.rlpp = self.rlpp_backup.pop(self.reference)  # use backup to calculate too
@@ -679,6 +705,7 @@ class Velocity:
 
         self.distance: [[d, dx, dy, number of interval, start frame, v, vx, vy]]
         """
+        raise NotImplementedError
 
     def calculate_and_save(self):
         """
@@ -689,15 +716,23 @@ class Velocity:
         self.real_v = real_v = SPEED[video][clip - 1]
 
         self.max_v = max_v = max(v for _, _, _, _, _, v, _, _ in self.distance)
-        error_max = (max_v - real_v) / real_v * 100
+        self.error_max = error_max = (max_v - real_v) / real_v * 100 if real_v != 0 else INVALID_VELOCITY_ERROR
 
         # calculate result and error with all reference objects
         ref, err = [], []
         for k, v in self.rlpp_backup.items():
+            if not v:  # for stick reference: if no stick in the video, v == None
+                continue
+            
             ref.append(k)
-            if k == 'average':  # try use whole distance and whole time interval to get a average velocity
+            if real_v == 0:
+                err.append(INVALID_VELOCITY_ERROR)  # invalid data in real result
+                continue 
+
+            # try use whole distance and whole time interval to get a average velocity
+            if k == 'average':
                 # average_v = 3600 * ((60 * 12 + 6) / 63360) / ((self.pos[-1][-1] - self.pos[0][-1]) * self.interval)
-                average_v = 3600 * ((60 * 12 + 6) / 63360) / ((self.distance[-1][4] - self.distance[0][4] + 1) * self.interval)
+                average_v = 3600 * ((60 * 12 + 6) / 63360) / ((self.distance[-1][4] - self.distance[0][4] + 1) * self.interval) # this is start frame, need +1
                 err.append((average_v - real_v) / real_v * 100)
             else:
                 err.append((max_v / self.rlpp * v - real_v) / real_v * 100)
@@ -719,10 +754,9 @@ class Velocity:
         """
         visualize where the velocity happens on the original trajectory
         """
-        error = (self.max_v - self.real_v) / self.real_v * 100
         plt.subplot(self.draw_row, self.draw_col, self.draw_subplot)
         self.draw_subplot += 1
-        plt.title(f'trajectory with the max velocity, error={error:.1f}%')
+        plt.title(f'trajectory with the max velocity, error={self.error_max:.1f}%')
 
         plt.xlim([0, self.img_x])
         plt.ylim([-self.img_y, 0])
