@@ -134,7 +134,7 @@ FPS = {
 }
 
 def find_fps(name):  # change the FPS structure, and find fps
-    for k, v in FPS:
+    for k, v in FPS.items():
         if name in v:
             return k
 
