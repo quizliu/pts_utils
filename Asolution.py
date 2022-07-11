@@ -137,6 +137,7 @@ def find_fps(name):  # change the FPS structure, and find fps
     for k, v in FPS.items():
         if name in v:
             return k
+    return 60  # most videos not write in FPS are filmed under 60fps
 
 def dis(pa, pb):
     '''
