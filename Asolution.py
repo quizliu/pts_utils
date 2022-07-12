@@ -137,7 +137,7 @@ def find_fps(name):  # change the FPS structure, and find fps
     for k, v in FPS.items():
         if name in v:
             return k
-    return 60  # most videos not write in FPS are filmed under 60fps
+    return 60  # most videos not write in FPS are filmed under 60
 
 def dis(pa, pb):
     '''
@@ -443,9 +443,8 @@ class Velocity:
         self.plt = plt.figure(figsize=(16, 9))
 
         self.img_x, self.img_y = 1920, 1080  # resolution
-        self.fps = find_fps(clip_name)  # fps
+        self.fps = find_fps(clip_name[:clip_name.rfind('_')])  # fps
         self.round = 2  # round digit in functions
-
         self.pos = []  # original trajectory data, [[position x, position y, number of frame]]
         self.distance = []  # calculated data, [[d, dx, dy, number of intervals, start frame, v, vx, vy]]
         self.frame_pos = {}  # use to plot velocity back on trajectory figure, {frame: [pos x, pos y]}
