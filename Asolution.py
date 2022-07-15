@@ -409,6 +409,11 @@ def arg_parser():
     parser.add_argument('-v', '--video', nargs='+', action='append', metavar='', help='pitch videos')
     parser.add_argument('-r', '--reference', metavar='', default='higher', help='plot with which reference object, higher or shorter or distance')
 
+    # add an argument for long video mode
+    parser.add_argument('-l', '--long', action='store_true', help='long video mode, default is false')
+    parser.add_argument('--no-long', dest='long', action='store_false')
+    parser.set_defaults(long=False)
+
     args = parser.parse_args()
     args.video = ['speed_' + i for i in args.video[0]]
     # args.height1, args.height2 = int(args.height1), int(args.height2)
@@ -420,7 +425,7 @@ def set_logger():
     """
     log = logging.getLogger()
     log.setLevel(logging.INFO)
-    handler = logging.FileHandler(datetime.strftime(datetime.now(), r'%Y-%m-%d-%H-%M-%S') + '.txt', mode='w')
+    handler = logging.FileHandler(osp.join('AsolutionTextResult', datetime.strftime(datetime.now(), r'%Y-%m-%d-%H-%M-%S') + '.txt'), mode='w')
     handler.setLevel(logging.INFO)
     # formatter = logging.Formatter('%(asctime)s - %(funcName)s - %(message)s', '%m-%d %H:%M:%S')
     formatter = logging.Formatter('%(message)s')  # many result now, shorten the log string
@@ -527,6 +532,7 @@ class Velocity:
         }
 
         self.rlpp = self.rlpp_backup.pop(self.reference)  # use backup to calculate too
+        print(f'{self.clip_name} rlpp: {self.rlpp}')
 
         self.interval = 1 / self.fps
         self.limit_v1, self.limit_v2 = 30, 110  # max and min velocity to detect
@@ -819,7 +825,7 @@ if __name__ == '__main__':
     for video in table.video:
         for pitch in range(1, VIDEO[video] + 1):
             v = f'{video}_{pitch}'
-            V = Velocity(v, reference=table.reference)  # if not 1080p or want to use different reference, input the keyword arguments
+            V = Velocity(v, reference=table.reference)
             V.main()
         log.info('==============================')
         print(f'video {video} finished')
